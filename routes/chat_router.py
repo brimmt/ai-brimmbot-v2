@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from schemas.chat_schema import ChatRequestSchema
 from services.chat_service import save_message, get_recent_messages,generate_ai_response
 from services.memory import save_memory, load_memory
+from database import supabase
 from prompts import SYSTEM_PROMPT
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -9,8 +10,16 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 
 @router.post("/")
 def chat_with_brimmbot(request: ChatRequestSchema):
+    
+    existing = supabase.table("sessions") \
+            .select("*") \
+            .eq("id", request.session_id) \
+            .execute()
+    if not existing.data:
+        supabase.table("sessions").insert({"id": request.session_id}).execute()
+    
     try:
-       
+        
         save_message(request.session_id, "user", request.user_input)
 
        

@@ -4,12 +4,19 @@ from database import supabase
 router = APIRouter(prefix="/session", tags=["Session"])
 
 @router.post("/start")
-def start_session():
+def start_session(payload: dict):
     try:
-        # Insert new session row and return generated UUID
-        result = supabase.table("sessions").insert({}).execute()
-        session = result.data[0]
-        return {"session_id": session["id"]}
+        session_id = payload.get("session_id")
+        if not session_id:
+            return {"error": "session_id required"}
+
+        # Insert session only if it doesn't already exist
+        existing = supabase.table("sessions").select("*").eq("id", session_id).execute()
+
+        if not existing.data:
+            supabase.table("sessions").insert({"id": session_id}).execute()
+
+        return {"session_id": session_id}
 
     except Exception as e:
         print("Error creating session:", e)
