@@ -11,12 +11,20 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 @router.post("/")
 def chat_with_brimmbot(request: ChatRequestSchema):
     
-    existing = supabase.table("sessions") \
-            .select("*") \
-            .eq("id", request.session_id) \
+    try:
+        existing = (
+            supabase.table("sessions")
+            .select("*")
+            .eq("id", request.session_id)
             .execute()
-    if not existing.data:
-        supabase.table("sessions").insert({"id": request.session_id}).execute()
+        )
+
+        if not existing.data:
+            supabase.table("sessions").insert({"id": request.session_id}).execute()
+
+    except Exception as e:
+        print("Failed to ensure session:", e)
+    
     
     try:
         
