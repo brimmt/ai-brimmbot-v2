@@ -40,23 +40,14 @@ def get_recent_messages(session_id: str, limit: int = 10):
         raise
 
 
-def generate_ai_response(system_prompt: str, messages: list):
-    formatted_messages = [{"role": "system", "content": system_prompt}]
-
+def generate_ai_response(messages: list):
     try:
-        for m in messages:
-            formatted_messages.append({
-                "role": m["role"],
-                "content": m["content"]
-            })
-        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=formatted_messages
+            messages=messages
         )
-
         return response.choices[0].message.content
-    
+
     except Exception as e:
         print("Error in generate_ai_response", e)
         raise

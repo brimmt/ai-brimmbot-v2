@@ -25,36 +25,40 @@ def chat_with_brimmbot(request: ChatRequestSchema):
     except Exception as e:
         print("Failed to ensure session:", e)
     
-    
+
     try:
-        
-        save_message(request.session_id, "user", request.user_input)
 
        
+        save_message(request.session_id, "user", request.user_input)
+
         lower_msg = request.user_input.lower()
         if "my name is" in lower_msg:
             extracted = lower_msg.split("my name is")[1].strip()
             name = extracted.split()[0].replace(".", "")
             save_memory(request.session_id, "name", name)
 
+        # Load memory from DB
         memories = load_memory(request.session_id)
-        memory_text = "\n".join([f"{m['key']}: {m['value']}" for m in memories])
+        memory_text = "\n".join([f"{m['key']}: {m['value']}" for m in memories]) or "No stored memories yet."
 
-        
-        dynamic_prompt = SYSTEM_PROMPT + f"""
+        # Build full message list for OpenAI
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": f"Memory:\n{memory_text}"}
+        ]
 
-            Here’s what you remember about this user:
-            {memory_text if memory_text else 'No stored memories yet.'}
-
-            """
-
-       
+        # Add recent conversation history
         history = get_recent_messages(request.session_id)
+        for h in history:
+            messages.append({"role": h["role"], "content": h["content"]})
 
-       
-        bot_reply = generate_ai_response(dynamic_prompt, history)
+        # Add current user message last
+        messages.append({"role": "user", "content": request.user_input})
 
-      
+        # Get AI reply
+        bot_reply = generate_ai_response(messages)
+
+        # Save assistant reply
         save_message(request.session_id, "assistant", bot_reply)
 
         return {"reply": bot_reply}
